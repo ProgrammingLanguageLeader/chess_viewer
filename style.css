@@ -1,0 +1,43 @@
+table.chess {
+	text-align: center;
+}
+
+button {
+	width: 100%;
+}
+
+.chess img {
+	width: 100%;
+}
+
+textarea {
+	resize: none;
+}
+
+textarea#game, textarea#history, input#turn {
+	width: 100%;
+}
+
+.chess tr td {
+	width: 50px;
+	height: 50px;
+	text-align: center;
+}
+
+td.chess_odd {
+	background-color: #EEE;
+}
+
+td.chess_even {
+	background-color: #BBB;
+}
+
+tr.border, td.border {
+	background-color: brown;
+	font-weight: bold;
+	color: #FFA
+}
+
+input[type=file] {
+	visibility: hidden;
+}

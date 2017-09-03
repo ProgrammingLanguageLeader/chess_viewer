@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<title>Chess viewer</title>
+	<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.js"></script>
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-6">
+				<div class="panel panel-default">
+					<div class="panel-heading">Field</div>
+					<div class="panel-body">
+						<table class="table chess">
+
+						</table>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="panel-group">
+					<div class="panel panel-default">
+						<div class="panel-heading">History</div>
+						<div class="panel-body">
+							<textarea id="history" class="form-control" rows="10" placeholder="History of the game will be here" readonly="true"></textarea>
+						</div>
+					</div>
+					<div class="panel panel-default">
+						<button id="reset" class="btn btn-default">Reset game</button>
+					</div>
+					<div class="panel panel-default">
+						<div class="panel-heading">Result</div>
+						<div id="message" class="panel-body"></div>
+					</div>
+                    <div class="panel panel-default">
+                    	<div class="panel-heading">Choose file with the game</div>
+                        <div class="panel-body">
+                        	<input id="load_from_file" type="file" onChange="load_game_log_from_file(this)" />
+							<button id="load_from_file" class="btn btn-default">Load file</button>
+                        </div>
+                    </div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="panel-group">
+					<div class="panel panel-default">
+						<div class="panel-heading">Enter the next turn</div>
+						<div class="panel-body">
+							<input id="turn" class="form-control" type="text" maxlength="24" placeholder="type here" />
+						</div>
+						<div class="panel panel-default">
+							<button id="play_turn" class="btn btn-default">Play the turn</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="panel-group">
+					<div class="panel panel-default">
+						<div class="panel-heading">Enter all turns of a game to the field below</div>
+						<div class="panel-body">
+							<textarea id="game" class="form-control" rows="10" placeholder="type here"></textarea>
+						</div>
+						<div class="panel panel-default">
+							<button id="next_turn" class="btn btn-default">Next turn</button>
+						</div>
+						<div class="panel panel-default">
+							<button id="play_game" class="btn btn-default">Play the game</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		var field = generate_start_field()
+		var end_of_the_game = false
+		var turn_number = 0
+		var error_ocurred = false
+		var abc = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
+		function init_field() {
+			$('table.chess').append('<tr class="border"></tr>')
+			for (var i = 8; i > 0; i--) {
+				$('table.chess').append(
+					'<tr class="chess" id="' + i + '">' +
+						'<td class="border">' + i + '</td>' +
+					'</tr>'
+				)
+				for (var j = 1; j <= 8; j++) {
+					if ( (i + j) % 2 != 0) {
+						$('table.chess tr.chess#' + i).append('<td class="chess_odd" id="' + i + abc[j] + '"></td>')
+					}
+					else {
+						$('table.chess tr.chess#' + i).append('<td class="chess_even" id="' + i + abc[j] + '"></td>')
+					}
+				}
+				$('table.chess tr.chess#' + i).append('<td class="border">' + i + '</td>')
+			}
+			$('table.chess').append('<tr class="border"></tr>')
+			$('table.chess tr.border').each(function () {
+				$(this).append('<td class="corner"><img src="images/empty.png"></td>')
+				for (var i = 1; i <= 8; i++) {
+					$(this).append('<td class="border">' + abc[i])
+				}
+				$(this).append('<td class="corner"><img src="images/empty.png"></td>')
+			})
+		}
+
+		function generate_start_field() {
+		    var field = [
+		        ['white_rook', 'white_knight', 'white_bitshop', 'white_queen', 'white_king', 'white_bitshop', 'white_knight', 'white_rook'],
+		        ['white_pawn', 'white_pawn', 'white_pawn', 'white_pawn', 'white_pawn', 'white_pawn', 'white_pawn', 'white_pawn'],
+		        ['', '', '', '', '', '', '', ''],
+		        ['', '', '', '', '', '', '', ''],
+		        ['', '', '', '', '', '', '', ''],
+		        ['', '', '', '', '', '', '', ''],
+		        ['black_pawn', 'black_pawn', 'black_pawn', 'black_pawn', 'black_pawn', 'black_pawn', 'black_pawn', 'black_pawn'],
+		        ['black_rook', 'black_knight', 'black_bitshop', 'black_queen', 'black_king', 'black_bitshop', 'black_knight', 'black_rook']
+		    ]
+		    return field
+		}
+
+
+		function get_maxtrix_coordinates_from_chess_position(chess_position) {
+			try {
+				var col = abc.indexOf(chess_position[0].toUpperCase()) - 1
+				var row = chess_position[1] - 1
+				return {x: row, y: col}
+			}
+			catch (e) {
+				return {x: -1, y: -1}
+			}
+		}
+
+		function render_field(field) {
+			for (var i = 0; i < 8; i++) {
+				for (var j = 0; j < 8; j++) {
+					if (field[i][j] != '') {
+						$('table.chess td#' + (i+1) + abc[j+1]).html('<img src="images/' + field[i][j] + '.png" />')
+					}
+					else {
+						$('table.chess td#' + (i+1) + abc[j+1]).html('<img src="images/empty.png" />')
+					}
+				}
+			}
+		}
+
+		function move_figure(from, to) {
+			var converted = get_maxtrix_coordinates_from_chess_position(from)
+			var moving_figure = field[converted['x']][converted['y']]
+			field[converted['x']][converted['y']] = ''
+			converted = get_maxtrix_coordinates_from_chess_position(to)
+			field[converted['x']][converted['y']] = moving_figure
+		}
+
+		function is_turn_correct_by_color(from, to, color) {
+			var converted_from = get_maxtrix_coordinates_from_chess_position(from)
+			var converted_to = get_maxtrix_coordinates_from_chess_position(to)
+			try {
+				return !(
+					field[converted_from['x']][converted_from['y']].indexOf(color) == -1 ||
+					field[converted_to['x']][converted_to['y']].indexOf(color) != -1
+				)
+			}
+			catch (e) {
+				return false
+			}
+		}
+
+		// returns following object
+		// white or black {
+		// 		roque: (true/false)
+		//		king_from, king_to, white_from, white_to, if roque was detected
+		//		from, to,
+		// 		message - turn result (checkmate/error message or empty string)
+		// }
+		function parse_turn(turn) {
+			var re = new RegExp(/[^(a-h)(0-8)(#)]/g)
+			turn = turn.replace(re, '')
+			var result = {
+				white: {},
+				black: {},
+				message: ''
+			}
+
+			// white's turn
+			try {
+				// roque case
+				if (turn[0]  == '0' && turn[1] == '0') {
+					result['white']['roque'] = true
+					result['white']['king_from'] = 'e1'
+					if (turn[2] == '0') {
+						result['white']['king_to'] = 'c1'
+						result['white']['rook_from'] = 'a1'
+						result['white']['rook_to'] = 'd1'
+						turn = turn.slice(3, turn.length)
+					}
+					else {
+						result['white']['king_to'] = 'g1'
+						result['white']['rook_from'] = 'h1'
+						result['white']['rook_to'] = 'f1'
+						turn = turn.slice(2, turn.length)
+					}
+				}
+				else {
+					result['white']['roque'] = false
+					var white_from = turn.slice(0, 2)
+					var white_to = turn.slice(2, 4)
+					result['white']['from'] = white_from
+					result['white']['to'] = white_to
+					if (!is_turn_correct_by_color(white_from, white_to, 'white')) {
+						throw 'Error: white\'s turn is invalid'
+					}
+					turn = turn.slice(4, turn.length)
+				}
+				end_of_the_game = turn.indexOf('#') == 0
+				if (end_of_the_game) {
+					result['message'] = 'Checkmate! White\'s victory!'
+				}
+
+				// black's turn
+				if (!end_of_the_game) {
+					// roque case
+					if (turn[0] == '0' && turn[1] == '0') {
+						result['black']['roque'] = true
+						result['black']['king_from'] = 'e8'
+						if (turn[2] == '0') {
+							result['black']['king_to'] = 'c8'
+							result['black']['rook_from'] = 'a8'
+							result['black']['rook_to'] = 'd8'
+							turn = turn.slice(3, turn.length)
+						}
+						else {
+							result['black']['king_to'] = 'g8'
+							result['black']['rook_from'] = 'h8'
+							result['black']['rook_to'] = 'f8'
+							turn = turn.slice(2, turn.length)
+						}
+					}
+					else {
+						var black_from = turn.slice(0, 2)
+						var black_to = turn.slice(2, 4)
+						result['black']['from'] = black_from
+						result['black']['to'] = black_to
+						if (!is_turn_correct_by_color(black_from, black_to, 'black')) {
+							throw 'Error: black\'s turn is invalid'
+						}
+						turn = turn.slice(4, turn.length)
+					}
+					end_of_the_game = turn.indexOf('#') == 0
+					if (end_of_the_game) {
+						result['message'] = 'Checkmate! Black\'s victory'
+					}
+				}
+			}
+			catch (e) {
+				error_ocurred = true
+				result['message'] = e
+			}
+			return result
+		}
+
+		function play_turn(turn) {
+			if (end_of_the_game || error_ocurred) {
+				return
+			}
+			parsed_turn = parse_turn(turn)
+			var message = '(' + (turn_number + 1) + ') ' + turn + '<br/>' +
+							parsed_turn['message']
+			$('#message').html(message)
+
+			if (parsed_turn['white']['roque']) {
+				var king_from = parsed_turn['white']['king_from']
+				var king_to = parsed_turn['white']['king_to']
+				var rook_from = parsed_turn['white']['rook_from']
+				var rook_to = parsed_turn['white']['rook_to']
+				move_figure(king_from, king_to)
+				move_figure(rook_from, rook_to)
+			}
+			else {
+				var white_from = parsed_turn['white']['from']
+				var white_to = parsed_turn['white']['to']
+				move_figure(white_from, white_to)
+			}
+
+			if (!end_of_the_game) {
+				if (parsed_turn['black']['roque']) {
+					var king_from = parsed_turn['black']['king_from']
+					var king_to = parsed_turn['black']['king_to']
+					var rook_from = parsed_turn['black']['rook_from']
+					var rook_to = parsed_turn['black']['rook_to']
+					move_figure(king_from, king_to)
+					move_figure(rook_from, rook_to)
+				}
+				else {
+					var black_from = parsed_turn['black']['from']
+					var black_to = parsed_turn['black']['to']
+					move_figure(black_from, black_to)
+				}
+			}
+
+            render_field(field)
+			$('textarea#history').val($('textarea#history').val() + turn + '\n')
+			turn_number++
+		}
+
+		function load_game_log_from_file(that) {
+			if (that.files && that.files[0]) {
+				var reader = new FileReader()
+				reader.onload = function (e) {
+					var output = e.target.result
+					$('textarea#game').val(output)
+				}
+				reader.readAsText(that.files[0])
+			}
+		}
+
+		$(document).ready(function() {
+			init_field()
+			render_field(field)
+			$('textarea#history').val('')
+			$('input#turn').val('')
+		})
+
+		$('button#reset').click(function() {
+			end_of_the_game = false
+			turn_number = 0
+			field = generate_start_field()
+			error_ocurred = false
+			$('textarea#history').val('')
+			$('input#turn').val('')
+			$('div#message').html('')
+			render_field(field)
+		})
+
+		$('button#play_turn').click( function() {
+			var turn = $('input#turn').val()
+			play_turn(turn)
+		})
+
+		$('button#next_turn').click(function() {
+			var game = $('textarea#game').val().split('\n')
+			play_turn(game[turn_number])
+		})
+
+		$('button#play_game').click(function() {
+			var game = $('textarea#game').val().split('\n')
+			for (var i = turn_number; i < game.length; i++) {
+				play_turn(game[i])
+			}
+		})
+
+		$('button#load_from_file').click(function() {
+			$('input#load_from_file').trigger('click')
+		})
+	</script>
+</body>
+</html>
